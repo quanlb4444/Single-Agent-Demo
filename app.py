@@ -121,11 +121,29 @@ OPENAI_MODEL=gpt-4o-mini
     # Initialize chat history
     if "messages" not in st.session_state:
         st.session_state.messages = []
+    # Flag to auto-process last user message (for example buttons)
+    if "process_last" not in st.session_state:
+        st.session_state.process_last = False
     
     # Display chat history
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
+
+    # Auto-process message from example buttons
+    if st.session_state.get("process_last") and st.session_state.messages:
+        prompt = st.session_state.messages[-1]["content"]
+        with st.chat_message("assistant"):
+            with st.spinner("Thinking..."):
+                try:
+                    response = agent.plan_and_act(prompt)
+                    st.markdown(response)
+                    st.session_state.messages.append({"role": "assistant", "content": response})
+                except Exception as e:
+                    error_msg = f"❌ Error: {str(e)}"
+                    st.error(error_msg)
+                    st.session_state.messages.append({"role": "assistant", "content": error_msg})
+        st.session_state.process_last = False
     
     # Chat input
     if prompt := st.chat_input("Ask me anything about weather, customers, or knowledge..."):
@@ -160,42 +178,45 @@ OPENAI_MODEL=gpt-4o-mini
         st.markdown("**🌤️ Weather**")
         if st.button("Thời tiết ở Đà Nẵng"):
             st.session_state.messages.append({"role": "user", "content": "Thời tiết ở Đà Nẵng"})
+            st.session_state.process_last = True
             st.rerun()
         if st.button("Weather in Hanoi"):
             st.session_state.messages.append({"role": "user", "content": "Weather in Hanoi"})
+            st.session_state.process_last = True
             st.rerun()
     
     with col2:
         st.markdown("**🗄️ Database**")
-        if st.button("Tổng số khách hàng"):
-            st.session_state.messages.append({"role": "user", "content": "Tổng số khách hàng"})
-            st.rerun()
-        if st.button("How many customers?"):
-            st.session_state.messages.append({"role": "user", "content": "How many customers?"})
-            st.rerun()
         if st.button("Danh sách nhân viên"):
             st.session_state.messages.append({"role": "user", "content": "Hiển thị danh sách nhân viên"})
+            st.session_state.process_last = True
             st.rerun()
         if st.button("Thêm nhân viên"):
             st.session_state.messages.append({"role": "user", "content": "Thêm nhân viên Nguyễn Văn A sinh năm 1990"})
+            st.session_state.process_last = True
             st.rerun()
         if st.button("Xóa theo tên"):
             st.session_state.messages.append({"role": "user", "content": "Xóa nhân viên Phạm Văn C"})
+            st.session_state.process_last = True
             st.rerun()
         if st.button("Sửa theo tên"):
             st.session_state.messages.append({"role": "user", "content": "Sửa nhân viên Lê Quốc An thành sinh năm 2002"})
+            st.session_state.process_last = True
             st.rerun()
         if st.button("Tìm nhân viên"):
             st.session_state.messages.append({"role": "user", "content": "Tìm nhân viên Lê"})
+            st.session_state.process_last = True
             st.rerun()
     
     with col3:
         st.markdown("**🔍 Knowledge**")
         if st.button("Single Agent là gì?"):
             st.session_state.messages.append({"role": "user", "content": "Single Agent là gì?"})
+            st.session_state.process_last = True
             st.rerun()
         if st.button("How does RAG work?"):
             st.session_state.messages.append({"role": "user", "content": "How does RAG work?"})
+            st.session_state.process_last = True
             st.rerun()
     
     # Action buttons
