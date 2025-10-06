@@ -1,98 +1,78 @@
 # Single Agent Demo
 
-Một demo tối thiểu về Single Agent architecture với 3 tools: RAG, Weather API, và SQLite Database.
+Demo kiến trúc Single Agent: chat UI (Streamlit), OpenAI Function Calling và bộ tool tách module (RAG, Weather, Database/Employees).
 
-## Cấu trúc file
+## Cấu trúc thư mục (rút gọn)
 
 ```
 single_agent_demo/
 ├─ requirements.txt
 ├─ .env.example
-├─ main.py          # điểm vào: chạy demo CLI
-├─ app.py           # giao diện Streamlit
-├─ run_streamlit.py # script chạy Streamlit
-├─ agent.py         # agent + router + registry
-├─ tools.py         # định nghĩa 3 tools: RAG, Weather API, SQLite DB
-├─ corpus/
-│  └─ knowledge.md  # dữ liệu RAG mẫu
-└─ data.db          # SQLite mẫu (auto tạo nếu chưa có)
+├─ app.py                 # Giao diện Streamlit
+├─ agent.py               # SingleAgent (planning/acting) + Registry
+├─ toolkit/               # Bộ tool tách module
+│  ├─ base.py             # ToolSpec, Tool
+│  ├─ rag_tools.py        # rag_tool_factory (BM25)
+│  ├─ external_tools.py   # weather_tool_factory (Open‑Meteo + geocoding)
+│  └─ db_tools.py         # query_db + CRUD Employees (ID & tên)
+├─ docs/
+│  └─ SingleAgent_Architecture.md
+└─ data.db                # SQLite (tự tạo khi chạy tool)
 ```
 
 ## Cài đặt
 
-1. Tạo virtual environment:
 ```bash
-python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
-```
-
-2. Cài đặt dependencies:
-```bash
+python -m venv venv
+source venv/bin/activate   # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-3. (Tùy chọn) Cấu hình OpenAI API key:
+Tạo file `.env` và cấu hình OpenAI (bắt buộc để agent hoạt động):
 ```bash
 cp .env.example .env
-# Chỉnh sửa .env và thêm OPENAI_API_KEY nếu muốn dùng function calling
+# Mở .env và thêm:
+# OPENAI_API_KEY=your_api_key_here
+# OPENAI_MODEL=gpt-4o-mini   # hoặc model tương thích function calling
 ```
 
-## Chạy demo
+## Chạy ứng dụng
 
-### CLI Version
 ```bash
-python main.py
-```
-
-### Web Interface (Streamlit)
-```bash
-python run_streamlit.py
-# Hoặc
+source venv/bin/activate
 streamlit run app.py
 ```
+Sau đó mở `http://localhost:8501`.
 
-Sau khi chạy, mở browser tại: http://localhost:8501
+## Tính năng chính
 
-## Ví dụ câu hỏi
+- RAG (BM25): truy vấn tri thức nội bộ (minh họa corpus nhỏ)
+- Weather: geocoding động + Open‑Meteo (current/hourly)
+- Database/Employees (SQLite):
+  - Thêm/list/xóa/sửa nhân viên theo ID
+  - Tìm/xóa/sửa theo tên (partial, case‑insensitive)
+  - Thực thi ngay, không yêu cầu xác nhận
+- Modal “Project Flow”: nút “📈 Show Flow” hiển thị sơ đồ Graphviz luồng xử lý
+- Không còn keyword routing; nếu thiếu API key → báo lỗi rõ ràng
 
-- "Thời tiết hôm nay ở Đà Nẵng?" → Agent gọi get_weather
-- "Cho tôi biết tổng số khách hàng trong DB." → Agent gọi query_db
-- "Single Agent hoạt động thế nào?" → Agent gọi rag_search
+## Ví dụ câu hỏi (copy & click)
 
-## Kiểm thử
+- “Thời tiết ở Đà Nẵng”
+- “Hiển thị danh sách nhân viên”
+- “Thêm nhân viên Nguyễn Văn A sinh năm 1990”
+- “Xóa nhân viên ID 4” hoặc “Xóa nhân viên Phạm Văn C”
+- “Sửa nhân viên Lê Quốc An thành sinh năm 2002”
+- “Single Agent hoạt động thế nào?”
 
-Chạy test structure:
-```bash
-python test_structure.py
-```
+## Ghi chú kỹ thuật
 
-## Tính năng
+- Mỗi request DB mở/đóng kết nối riêng (`sqlite3.connect(..., check_same_thread=False)`) để an toàn với Streamlit
+- ToolSpec/Tool (Pydantic schema) giúp LLM chọn tool và sinh tham số chính xác
+- Mô tả tool nêu rõ “execute immediately, no confirmation” để tránh model hỏi lại
 
-### 1. RAG Tool (BM25-based)
-- Tìm kiếm trong corpus/knowledge.md
-- Sử dụng BM25 ranking
-- Không cần embedding model
+## Mở rộng gợi ý
 
-### 2. Weather Tool
-- Sử dụng Open-Meteo API (miễn phí)
-- Hỗ trợ 3 thành phố Việt Nam: Đà Nẵng, Hà Nội, TP.HCM
-- Trả về nhiệt độ theo giờ
-
-### 3. Database Tool
-- SQLite database với bảng customers
-- Chỉ cho phép SELECT queries
-- Tự động tạo dữ liệu mẫu (50 khách hàng)
-
-### 4. Router
-- **Với OpenAI API**: Sử dụng function calling
-- **Không có API key**: Keyword-based routing đơn giản
-
-## Mở rộng
-
-Xem phần "Mở rộng sản xuất" trong tài liệu gốc để biết cách cải thiện:
-- RAG với embedding + FAISS
-- Observability với OpenTelemetry
-- Policy enforcement
-- Caching
-- Async processing
-- Evaluation framework
+- Backend tách riêng (FastAPI) + UI (Streamlit/React)
+- RAG nâng cao: embedding + vector DB, reranking, citation
+- Observability: logging/tracing tool calls, rate‑limit & retry
+- Bảo mật: least privilege cho tool, không log secrets/PII, dùng `.env`

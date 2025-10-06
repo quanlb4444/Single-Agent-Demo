@@ -61,6 +61,54 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# Widen Streamlit dialog modal and make graph full width
+st.markdown(
+    """
+<style>
+  /* Expand dialog to full viewport width */
+  div[data-testid="stDialog"] { width: 100vw !important; max-width: 100vw !important; }
+  div[data-testid="stDialog"] > div { width: 100% !important; }
+  /* Some Streamlit themes wrap dialog in role=dialog container */
+  div[role="dialog"] { width: 100vw !important; max-width: 100vw !important; }
+  div[role="dialog"] > div { width: 100% !important; }
+  div[data-testid="stDialog"] .stGraphVizChart { width: 100% !important; }
+  div[data-testid="stDialog"] .stGraphVizChart svg { width: 100% !important; height: auto !important; }
+  div[data-testid="stDialog"] .element-container,
+  div[data-testid="stDialog"] [data-testid="stMarkdownContainer"] { width: 100%; }
+  div[data-testid="stDialog"] section[tabindex="0"] { padding-left: 0.5rem; padding-right: 0.5rem; }
+</style>
+""",
+    unsafe_allow_html=True,
+)
+
+# Modal dialog to display project flow
+@st.dialog("📈 Project Flow")
+def show_flow_modal():
+    dot = """
+digraph {
+  rankdir=LR;
+  graph [dpi=60, nodesep=0.5, ranksep=0.9, ratio=fill, size="12,6!"];
+  node [shape=box, style=rounded, fontsize=12];
+  edge [fontsize=11];
+
+  User [label="User"];
+  UI [label="Streamlit UI"];
+  Agent [label="SingleAgent"];
+  OpenAI [label="OpenAI (Function Calling)"];
+  Tools [label="Tools: RAG / Weather / DB"];
+  Data [label="SQLite / HTTP APIs"];
+
+  User -> UI -> Agent;
+  Agent -> OpenAI [label="messages + tools"];
+  OpenAI -> Agent [label="tool_call + args"];
+  Agent -> Tools [label="execute handler"];
+  Tools -> Data;
+  Tools -> Agent [label="result"];
+  Agent -> UI [label="final answer"];
+}
+"""
+    st.graphviz_chart(dot, use_container_width=True, height=600)
+
 def initialize_agent():
     """Initialize the agent with tools"""
     reg = Registry()
@@ -231,7 +279,7 @@ OPENAI_MODEL=gpt-4o-mini
             st.rerun()
     
     # Action buttons
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
     
     with col1:
         if st.button("🗑️ Clear Chat", type="secondary"):
@@ -243,6 +291,10 @@ OPENAI_MODEL=gpt-4o-mini
             # Force refresh by clearing any potential caches
             st.cache_data.clear()
             st.rerun()
+
+    with col3:
+        if st.button("📈 Show Flow", type="primary"):
+            show_flow_modal()
     
     # Footer
     st.divider()
