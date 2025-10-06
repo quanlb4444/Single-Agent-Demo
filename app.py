@@ -141,8 +141,8 @@ def main():
         st.code("Example: 'Thời tiết ở Hà Nội'")
         
         st.subheader("🗄️ Database")
-        st.write("Query customer database (read-only)")
-        st.code("Example: 'Tổng số khách hàng'")
+        st.write("Query staff database (read-only)")
+        st.code("Example: 'Tổng số nhân viên'")
         
         st.subheader("👥 Employee Management")
         st.write("**Add:** 'Thêm nhân viên Nguyễn Văn A sinh năm 1990'")
